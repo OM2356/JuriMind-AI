@@ -1,0 +1,6 @@
+{
+  "name": "JuriMind AI",
+  "description": "Futuristic AI-powered SaaS legal assistant for asking questions, contract summarization, agreement generation, and clause risk detection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
