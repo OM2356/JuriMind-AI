@@ -1,308 +1,245 @@
 package com.example.ui
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.*
+import com.example.ui.theme.CyberBlue
+import com.example.ui.theme.DarkSurface
+import com.example.ui.theme.RoyalBlue
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GeneratorScreen(viewModel: JuriMindViewModel) {
-    val generatorDocType by viewModel.generatorDocType.collectAsState()
-    val generatorTitle by viewModel.generatorTitle.collectAsState()
-    val generatorParties by viewModel.generatorParties.collectAsState()
-    val generatorCustomDetails by viewModel.generatorCustomDetails.collectAsState()
-    val generatedDraftText by viewModel.generatedDraftText.collectAsState()
-    val isGenerating by viewModel.isGenerating.collectAsState()
+fun GeneratorScreen(
+    viewModel: JuriMindViewModel,
+    onNavigateBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val resultText by viewModel.generatedContractText.collectAsState()
 
-    val templateTypes = listOf(
-        TemplateItem("nda", "Confidential NDA", Icons.Default.Gavel),
-        TemplateItem("rental", "Lease Contract", Icons.Default.Home),
-        TemplateItem("employment", "Employment agreement", Icons.Default.AssignmentInd),
-        TemplateItem("notice", "Cease formal notice", Icons.Default.Warning)
-    )
+    var selectedType by remember { mutableStateOf("Mutual NDA") }
+    var companyName by remember { mutableStateOf("") }
+    var clientName by remember { mutableStateOf("") }
+    var contractValue by remember { mutableStateOf("$25,000") }
+    var durationMonths by remember { mutableStateOf(12f) }
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 14.dp),
-        contentPadding = PaddingValues(top = 10.dp, bottom = 100.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // --- Title ---
-        item {
-            Column {
-                GradientText(
-                    text = "DRAFTING & SYNTHESIS LAB",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    fontFamily = FontFamily.Monospace
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("SLA Agreement Auto-Gen", color = Color.White, fontWeight = FontWeight.Bold) },
+                navigationIcon = {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        modifier = Modifier.minimumInteractiveComponentSize().testTag("generator_back_button")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Navigate backward",
+                            tint = Color.White
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background
                 )
-                Text(
-                    text = "Compile legally binding documents via automated neural pipelines.",
-                    fontSize = 12.sp,
-                    color = TextSecondary
-                )
-            }
-        }
-
-        if (generatedDraftText == null) {
-            // --- GENERATION INPUT CONTROLS ---
-
-            // Horizontal Template Slider
+            )
+        },
+        modifier = modifier
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
             item {
                 Text(
-                    text = "SELECT REQUISITE DECREE TEMPLATE",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = CyberCyan,
-                    fontFamily = FontFamily.Monospace
+                    "Autogenerate Compliant SLA/NDA templates",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    "Provide contextual variables below. The generator injects mutual restrictions and liability protective ceilings dynamically.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(top = 4.dp)
                 )
             }
 
+            // Selector Tabs
             item {
-                LazyRow(
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(templateTypes.size) { index ->
-                        val item = templateTypes[index]
-                        val isSelected = item.id == generatorDocType
-                        val colorAccent = when (item.id) {
-                            "nda" -> CyberCyan
-                            "rental" -> CyberGreen
-                            "employment" -> CyberYellow
-                            else -> CyberMagenta
-                        }
-
-                        Box(
+                    listOf("Mutual NDA", "Service Level SLA").forEach { option ->
+                        val isMatched = selectedType == option
+                        Button(
+                            onClick = { selectedType = option },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isMatched) RoyalBlue else DarkSurface,
+                                contentColor = if (isMatched) Color.White else Color.LightGray
+                            ),
+                            shape = RoundedCornerShape(24.dp),
                             modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(CosmicCard)
-                                .border(
-                                    1.dp,
-                                    if (isSelected) colorAccent else GlassWhiteBorder,
-                                    RoundedCornerShape(12.dp)
-                                )
-                                .clickable {
-                                    viewModel.updateGeneratorDocType(item.id)
-                                }
-                                .padding(horizontal = 14.dp, vertical = 10.dp)
+                                .weight(1f)
+                                .minimumInteractiveComponentSize()
+                                .testTag("type_selector_${option.replace(" ", "_").lowercase()}")
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label,
-                                    tint = if (isSelected) colorAccent else TextSecondary,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = item.label,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) colorAccent else TextSecondary
-                                )
-                            }
+                            Text(option, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                         }
                     }
                 }
             }
 
-            // Input Fields Configuration form
+            // Input Fields
             item {
-                GlassmorphicCardFixed(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "DOCUMENT PREAMBLE SPECIFICATIONS",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = CyberCyan,
-                        fontFamily = FontFamily.Monospace
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = companyName,
+                    onValueChange = { companyName = it },
+                    label = { Text("Your Disclosing Entity / Company Name") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("gen_company_name_field"),
+                    singleLine = true
+                )
+            }
 
-                    // Title fields
-                    Text("Agreement Title:", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(4.dp))
+            item {
+                OutlinedTextField(
+                    value = clientName,
+                    onValueChange = { clientName = it },
+                    label = { Text("Client/Counterparty Entity Name") },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("gen_client_name_field"),
+                    singleLine = true
+                )
+            }
+
+            if (selectedType == "Service Level SLA") {
+                item {
                     OutlinedTextField(
-                        value = generatorTitle,
-                        onValueChange = { viewModel.updateGeneratorTitle(it) },
+                        value = contractValue,
+                        onValueChange = { contractValue = it },
+                        label = { Text("Stipulated Service Value (USD)") },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedBorderColor = CyberCyan,
-                            unfocusedBorderColor = GlassWhiteBorder,
-                            focusedContainerColor = CosmicCard,
-                            unfocusedContainerColor = CosmicDark
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Involved Parties fields
-                    Text("Participating Entities / Parties:", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = generatorParties,
-                        onValueChange = { viewModel.updateGeneratorParties(it) },
-                        placeholder = { Text("E.g. Lessor Smith & Lessee Johnson LLC", fontSize = 12.sp, color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedBorderColor = CyberCyan,
-                            unfocusedBorderColor = GlassWhiteBorder,
-                            focusedContainerColor = CosmicCard,
-                            unfocusedContainerColor = CosmicDark
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Special custom clauses field
-                    Text("Special Conditions / Directives:", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = generatorCustomDetails,
-                        onValueChange = { viewModel.updateGeneratorDetails(it) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedBorderColor = CyberCyan,
-                            unfocusedBorderColor = GlassWhiteBorder,
-                            focusedContainerColor = CosmicCard,
-                            unfocusedContainerColor = CosmicDark
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(100.dp),
-                        maxLines = 5
+                            .testTag("gen_value_field"),
+                        singleLine = true
                     )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    if (isGenerating) {
-                        Column(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            CircularProgressIndicator(color = CyberMagenta)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Compiling statutory definitions...",
-                                fontSize = 12.sp,
-                                color = CyberMagenta,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    } else {
-                        Button(
-                            onClick = { viewModel.generateLegalDocument() },
-                            colors = ButtonDefaults.buttonColors(containerColor = CyberCyan),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(Icons.Default.HistoryEdu, contentDescription = "Draft Contract", tint = CosmicDark)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("SYNTHESIZE CONTRACT DECREE", fontWeight = FontWeight.Black, color = CosmicDark, fontSize = 12.sp)
-                        }
-                    }
                 }
             }
-        } else {
-            // --- COMPILED AGREEMENT DISPLAY SCREEN ---
+
+            // Duration Slider
+            item {
+                Column {
+                    Row(modifier = Modifier.fillMaxWidth()) {
+                        Text("Agreement Duration", color = Color.White, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(modifier = Modifier.weight(1f))
+                        Text("${durationMonths.toInt()} Months", color = CyberBlue, fontWeight = FontWeight.Bold)
+                    }
+                    Slider(
+                        value = durationMonths,
+                        onValueChange = { durationMonths = it },
+                        valueRange = 1f..60f,
+                        steps = 59,
+                        colors = SliderDefaults.colors(
+                            thumbColor = CyberBlue,
+                            activeTrackColor = RoyalBlue
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("gen_duration_slider")
+                    )
+                }
+            }
+
+            // Trigger Generation Action
             item {
                 Button(
-                    onClick = { viewModel.clearGenerator() },
-                    colors = ButtonDefaults.buttonColors(containerColor = CosmicCard),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.border(1.dp, GlassWhite, RoundedCornerShape(8.dp))
+                    onClick = {
+                        viewModel.generateAgreement(
+                            type = selectedType,
+                            company = if (companyName.isNotBlank()) companyName else "[DISCLOSING PARTY]",
+                            client = if (clientName.isNotBlank()) clientName else "[COUNTERPARTY]",
+                            duration = durationMonths.toInt().toString(),
+                            value = contractValue
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = RoyalBlue),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .minimumInteractiveComponentSize()
+                        .testTag("trigger_document_generation")
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = CyberCyan, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.Build, contentDescription = "Draft icon")
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("WRITE ANOTHER AGREEMENT", fontSize = 11.sp, color = CyberCyan, fontWeight = FontWeight.Bold)
+                    Text("Draft Contract Agreement", color = Color.White)
+                }
+            }
+
+            // Final Output Block
+            if (resultText.isNotBlank()) {
+                item {
+                    Text(
+                        "Generated Draft Memorandum",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        modifier = Modifier.padding(top = 10.dp)
+                    )
+                }
+
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(1.dp, CyberBlue.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .background(DarkSurface)
+                            .padding(16.dp)
+                    ) {
+                        Text(
+                            text = resultText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White,
+                            lineHeight = 18.sp
+                        )
+                    }
                 }
             }
 
             item {
-                GlassmorphicCardFixed(
-                    modifier = Modifier.fillMaxWidth(),
-                    glowActive = true
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column {
-                            Text(
-                                text = "NEURAL SYNTHESIS RESOLVED",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = CyberCyan,
-                                fontFamily = FontFamily.Monospace
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = generatorTitle,
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
-                        }
-                        Box(
-                            modifier = Modifier
-                                .background(CyberGreen.copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text(
-                                text = "COMPILED SECURE",
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = CyberGreen,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                    Divider(color = GlassWhite)
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = generatedDraftText ?: "",
-                        fontSize = 12.sp,
-                        color = TextPrimary,
-                        lineHeight = 18.sp,
-                        fontFamily = FontFamily.Monospace
-                    )
-                }
+                Spacer(modifier = Modifier.height(40.dp))
             }
         }
     }
 }
-
-data class TemplateItem(
-    val id: String,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)

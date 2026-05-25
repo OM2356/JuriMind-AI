@@ -2,29 +2,42 @@ package com.example.data
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.ForeignKey
+import androidx.room.Index
 
-@Entity(tableName = "chat_conversations")
+@Entity(tableName = "conversations")
 data class ChatConversation(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis()
 )
 
-@Entity(tableName = "chat_messages")
+@Entity(
+    tableName = "messages",
+    foreignKeys = [
+        ForeignKey(
+            entity = ChatConversation::class,
+            parentColumns = ["id"],
+            childColumns = ["conversationId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [Index(value = ["conversationId"])]
+)
 data class ChatMessage(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val conversationId: Int,
-    val sender: String, // "user" or "ai"
-    val text: String,
+    val sender: String,
+    val content: String,
     val timestamp: Long = System.currentTimeMillis()
 )
 
-@Entity(tableName = "saved_documents")
-data class SavedDocument(
+@Entity(tableName = "clauses")
+data class LegalClause(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
-    val title: String,
-    val docType: String, // "rental", "nda", "employment", "notice", "analysis"
-    val content: String, // generated draft or report markdown
-    val riskScore: Int = 0, // 0 for safe, 100 for maximum risk
-    val timestamp: Long = System.currentTimeMillis()
+    val category: String,
+    val name: String,
+    val standardText: String,
+    val explanation: String,
+    val riskLevel: String
 )
